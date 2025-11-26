@@ -4,14 +4,16 @@ from types import SimpleNamespace
 from typing import Callable, Self
 from config.Configuration import Configuration
 from core.Bootstrap import Bootstrap
+from core.GameContext import IGameContext
 from core.animations.AnimationBase import Animation
 from core.events.EventFunctionManager import Event, EventFunctionManager
 from core.loggers import engineInfo, engineLog
 from abc import ABC, abstractmethod
+from core.menu.Menu import IMenu
 
 import pygame
-pygame.font.init()
 
+pygame.font.init()
 
 class Bridge:
     def __init__(self, engine: Engine):
@@ -43,7 +45,9 @@ class Engine:
         self.setRunning(False)
 
     def run(self):
+        
         self.setRunning(True)
+
         self.__gameInstance.setBridge(self.__bridge)
         self.__gameInstance.setup()
 
@@ -58,39 +62,39 @@ class Engine:
             self.__gameInstance.getSprites().update()
             self.__context.flipOver()
 
-            if self.__background:
-                self.__screen.blit(self.__background, (0, 0))
+            gameContext = self.__gameInstance.getCurrentContext()
+            gameContext.update(self.__screen)
 
-            # consider moving this to another function or class
-            if self.eventFunctionManager.globalState.isDragging():
-                pos         = pygame.mouse.get_pos()
-                dragObject  = self.eventFunctionManager.globalState.getDragObject()
-                if dragObject.hasCursorSprite():
-                    cursor = dragObject.getCursorSprite()
-                    cursor.rect.center = pos
+            # # consider moving this to another function or class
+            # if self.eventFunctionManager.globalState.isDragging():
+            #     pos         = pygame.mouse.get_pos()
+            #     dragObject  = self.eventFunctionManager.globalState.getDragObject()
+            #     if dragObject.hasCursorSprite():
+            #         cursor = dragObject.getCursorSprite()
+            #         cursor.rect.center = pos
 
-            if Configuration.debug:
-                clickEvents = Engine.eventFunctionManager.getEventsListeners(EventFunctionManager.EventType.CLICK)
-                for key in clickEvents:
-                    pygame.draw.rect(self.__screen, Configuration.debug_area_color, clickEvents[key].getPayload().get("rect"), width=2)
-                clickEvents = Engine.eventFunctionManager.getEventsListeners(EventFunctionManager.EventType.MOUSE_MOVE)
-                for key in clickEvents:
-                    pygame.draw.rect(self.__screen, "yellow", clickEvents[key].getPayload().get("rect"), width=2)
+            # if Configuration.debug:
+            #     clickEvents = Engine.eventFunctionManager.getEventsListeners(EventFunctionManager.EventType.CLICK)
+            #     for key in clickEvents:
+            #         pygame.draw.rect(self.__screen, Configuration.debug_area_color, clickEvents[key].getPayload().get("rect"), width=2)
+            #     clickEvents = Engine.eventFunctionManager.getEventsListeners(EventFunctionManager.EventType.MOUSE_MOVE)
+            #     for key in clickEvents:
+            #         pygame.draw.rect(self.__screen, "yellow", clickEvents[key].getPayload().get("rect"), width=2)
                 
+            # ## Sera removido e levado para classe game instance 
+            # self.__gameInstance.getSprites().draw(self.__screen)
+            # # Carrega a fonte personalizada (certifique-se de que o arquivo está em ./fonts)
+            # fonte = pygame.font.Font("./assets/fonts/MedievalSharp-Regular.ttf", 30)
 
-            self.__gameInstance.getSprites().draw(self.__screen)
-            # Carrega a fonte personalizada (certifique-se de que o arquivo está em ./fonts)
-            fonte = pygame.font.Font("./assets/fonts/MedievalSharp-Regular.ttf", 30)
+            # # --- Label 1: Atacar Aritmético ---
+            # texto_arit = fonte.render("Atacar Aritmético", True, (255, 255, 255))
+            # texto_arit_rect = texto_arit.get_rect(center=(1000, 280))
+            # self.__context.screen().blit(texto_arit, texto_arit_rect)
 
-            # --- Label 1: Atacar Aritmético ---
-            texto_arit = fonte.render("Atacar Aritmético", True, (255, 255, 255))
-            texto_arit_rect = texto_arit.get_rect(center=(1000, 280))
-            self.__context.screen().blit(texto_arit, texto_arit_rect)
-
-            # --- Label 2: Atacar Algébrico ---
-            texto_alge = fonte.render("Atacar Algébrico", True, (255, 255, 255))
-            texto_alge_rect = texto_alge.get_rect(center=(1000, 340))
-            self.__context.screen().blit(texto_alge, texto_alge_rect)
+            # # --- Label 2: Atacar Algébrico ---
+            # texto_alge = fonte.render("Atacar Algébrico", True, (255, 255, 255))
+            # texto_alge_rect = texto_alge.get_rect(center=(1000, 340))
+            # self.__context.screen().blit(texto_alge, texto_alge_rect)
 
     def getAnimation(self) -> list[Animation]:            
         return self.__animations
@@ -148,12 +152,25 @@ class IGameInstance(ABC):
     @abstractmethod
     def addAnimation(self, animation: Animation) -> Self:
         pass
-    
+
+    @abstractmethod
+    def getCurrentContext(self) -> IGameContext:
+        pass
+
+    @abstractmethod
+    def setCurrentContext(self, context: IGameContext):
+        pass
+
     @abstractmethod
     def setup(self):
         pass
     
 class GameInstance(IGameInstance):
+
+    def __init__(self):
+        self.__gameContext: IGameContext = None
+        super().__init__()
+
     def setBridge(self, bridge: Bridge):
         self.engine = bridge
         self.__allSprites = pygame.sprite.Group()
@@ -176,3 +193,11 @@ class GameInstance(IGameInstance):
         animation.start()
         self.getEngine().addAnimation(animation)
         return self
+    
+    def getCurrentContext(self) -> IGameContext:
+        return self.__gameContext
+    
+    def setCurrentContext(self, context: IGameContext):
+        self.__gameContext = context
+    
+    

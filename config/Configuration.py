@@ -18,6 +18,7 @@ class Configuration:
         Configuration.engine_version            = configObject["engine"]["version"]
         Configuration.engine_fps                = configObject["engine"]["fps"]
         Configuration.engine_resolution         = tuple(configObject["engine"]["resolution"])
+        Configuration.engine_factor             = Configuration.engine_resolution[0] / Configuration.engine_resolution[1]
         Configuration.engine_PATH               = workingPath
         Configuration.engine_assets_dir         = workingPath / 'assets'
         Configuration.game_style_frame_offset   = 150

@@ -13,13 +13,13 @@ from core.Engine import GameInstance
 from application.objects.RuneDeck import RuneDeck
 from application.entities.Player import Player
 from config.Configuration import Configuration
-from core.events.EngineClick import EngineClick
-from core.events.EventFunctionManager import Event
+from application.menu.XvsyMenu import XvsyMenu
 from core.animations.dd.StaticAnimation import StaticAnimation
 
 class GameState:
     class State:
-        START                   ="[gamestate].running"
+        START                   ="[gamestate].start"
+        ON_MENU                 ="[gamestate].on_menu"
         TURN                    ="[gamestate].turn"
         CHANGE                  ="[gamestate].change"
         ENDGAME                 ="[gamestate].endgame"
@@ -36,11 +36,7 @@ class GameState:
         previous = self.__state
         match self.__state:
             case GameState.State.START:
-                self.__state = GameState.State.TURN
-            case GameState.State.TURN:
-                self.__state = GameState.State.CHANGE
-            case GameState.State.CHANGE:
-                self.__state = GameState.State.TURN
+                self.__state = GameState.State.ON_MENU
 
         print(f"GameState: {previous} -> {self.__state}")
 
@@ -51,37 +47,43 @@ class Xvsy(GameInstance):
         self.currentEntitys: TableEntity = None
         self.__runeDeckAnimation = None
 
-
     def update(self):
 
         match self.gameState.current():
             case GameState.State.START:
                 self.gameState.next()
-                self.currentEntity = self.player if random.choice([True, False]) else self.enemy
-                print(f"First player is {self.currentEntity}")   
+                self.setCurrentContext(XvsyMenu())
 
-            case GameState.State.TURN:
-                action = self.currentEntity.turn()
-                self.allowEventsIfPlayer()
-                if (action == Actions.GET_CARD_FROM_RUNE_DECK):
-                    self.currentEntity.getRuneCardFromDeck()
-                    if (self.currentEntity == self.enemy):
-                        card = self.runeDeck.next()
-                        position = self.enemy.addRune(card)
-                        self.dealCardForEnemyRuneFrame(position)
 
-                if self.currentEntity.getMana() == 0:
-                    self.gameState.next()
 
-            case GameState.State.CHANGE:
-                self.currentEntity.refillMana()
-                self.currentEntity = self.enemy if self.currentEntity == self.player else self.player
-                self.gameState.next()
+        # match self.gameState.current():
+        #     case GameState.State.START:
+        #         self.gameState.next()
+        #         self.currentEntity = self.player if random.choice([True, False]) else self.enemy
+        #         print(f"First player is {self.currentEntity}")   
+
+        #     case GameState.State.TURN:
+        #         action = self.currentEntity.turn()
+        #         self.allowEventsIfPlayer()
+        #         if (action == Actions.GET_CARD_FROM_RUNE_DECK):
+        #             self.currentEntity.getRuneCardFromDeck()
+        #             if (self.currentEntity == self.enemy):
+        #                 card = self.runeDeck.next()
+        #                 position = self.enemy.addRune(card)
+        #                 self.dealCardForEnemyRuneFrame(position)
+
+        #         if self.currentEntity.getMana() == 0:
+        #             self.gameState.next()
+
+        #     case GameState.State.CHANGE:
+        #         self.currentEntity.refillMana()
+        #         self.currentEntity = self.enemy if self.currentEntity == self.player else self.player
+        #         self.gameState.next()
                     
-            case GameState.State.__getCardFromRuneDeck__:
-                if self.__runeDeckAnimation is None:
-                    self.dealCardForEnemyRuneFrame(4)
-                    self.__runeDeckAnimation = True
+        #     case GameState.State.__getCardFromRuneDeck__:
+        #         if self.__runeDeckAnimation is None:
+        #             self.dealCardForEnemyRuneFrame(4)
+        #             self.__runeDeckAnimation = True
 
     def dealCardForEnemyRuneFrame(self, position: tuple[int, int]):
         card = PlainCard(position=(100, 300), scale=Configuration.card_scale)
@@ -98,8 +100,11 @@ class Xvsy(GameInstance):
 
     def setup(self):
  
-        self.runeDeck   = RuneDeck(position=(50, 300))
+        self.setCurrentContext(XvsyMenu())
         self.gameState  = GameState()
+        return 
+
+        self.runeDeck   = RuneDeck(position=(50, 300))
 
         self.player     = Player(lowerDeckPosition=(125, 500), cardHandPosition=(125, 675))
         self.enemy      = Enemy(lowerDeckPosition=(125, 50), cardHandPosition=(125, -50))
